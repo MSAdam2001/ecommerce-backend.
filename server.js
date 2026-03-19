@@ -8,7 +8,15 @@ dotenv.config();
 
 const app = express();
 
-app.use(cors({ origin: 'http://localhost:3000', credentials: true }));
+app.use(cors({
+  origin: [
+    'http://localhost:3000',
+    'https://ecommerce-frontend.vercel.app',
+    /\.vercel\.app$/
+  ],
+  credentials: true
+}));
+
 app.use(express.json());
 app.use(cookieParser());
 
@@ -31,8 +39,8 @@ app.get('/', (req, res) => res.json({ message: 'API is running' }));
 mongoose.connect(process.env.MONGO_URI)
   .then(() => {
     console.log('MongoDB connected');
-    app.listen(process.env.PORT, () => {
-      console.log(`Server running on port ${process.env.PORT}`);
+    app.listen(process.env.PORT || 5000, () => {
+      console.log(`Server running on port ${process.env.PORT || 5000}`);
     });
   })
   .catch((err) => console.log('DB connection error:', err));
