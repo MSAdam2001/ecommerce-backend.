@@ -1,27 +1,37 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
-exports.protect = async (req, res, next) => {
+const protect = async (req, res, next) => {
+  let token;
+
+  // Check Authorization header first (for mobile)
+  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+    token = req.headers.authorization.split(' ')[1];
+  }
+  // Fallback to cookie
+  else if (req.cookies && req.cookies.token) {
+    token = req.cookies.token;
+  }
+
+  if (!token) {
+    return res.status(401).json({ message: 'Not authorized, no token' });
+  }
+
   try {
-    const token = req.cookies.token || req.headers.authorization?.split(' ')[1];
-
-    if (!token) {
-      return res.status(401).json({ message: 'Not authorized, no token' });
-    }
-
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.user = await User.findById(decoded.id).select('-password');
     next();
   } catch (err) {
-    res.status(401).json({ message: 'Token invalid or expired' });
+    return res.status(401).json({ message: 'Not authorized, token failed' });
   }
 };
 
-exports.isAdmin = (req, res, next) => {
+const isAdmin = (req, res, next) => {
   if (req.user && req.user.role === 'admin') {
-    return next();
+    next();
+  } else {
+    res.status(403).json({ message: 'Not authorized as admin' });
   }
-  res.status(403).json({ message: 'Admin access only' });
 };
 
-
+module.exports = { protect, isAdmin };
