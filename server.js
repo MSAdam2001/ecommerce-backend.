@@ -8,9 +8,19 @@ dotenv.config();
 
 const app = express();
 
+// ✅ FIXED CORS — properly handles credentials + production origins
+const allowedOrigins = [
+  'http://localhost:3000',
+  process.env.CLIENT_URL,
+].filter(Boolean); // removes undefined if CLIENT_URL not set
+
 app.use(cors({
-  origin: function(origin, callback) {
-    callback(null, true);
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true); // allow Postman / mobile
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error(`CORS blocked for origin: ${origin}`));
   },
   credentials: true
 }));

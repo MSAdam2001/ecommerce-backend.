@@ -12,12 +12,15 @@ const generateToken = (id) => {
 const sendTokenCookie = (res, token) => {
   res.cookie('token', token, {
     httpOnly: true,
+    // ✅ FIXED: secure only in production
     secure: process.env.NODE_ENV === 'production',
+    // ✅ FIXED: 'none' required for cross-origin cookie (frontend on Render, backend on Vercel)
     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-    maxAge: 7 * 24 * 60 * 60 * 1000
+    maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
   });
 };
 
+// ✅ REGISTER
 router.post('/register', [
   body('name').notEmpty().withMessage('Name is required'),
   body('email').isEmail().withMessage('Valid email is required'),
@@ -25,48 +28,58 @@ router.post('/register', [
 ], async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array() });
+    return res.status(400).json({ success: false, errors: errors.array() });
   }
+
   try {
     const { name, email, password } = req.body;
+
     const existingUser = await User.findOne({ email });
     if (existingUser) {
-      return res.status(400).json({ message: 'Email already in use' });
+      return res.status(400).json({ success: false, message: 'Email already in use' });
     }
+
     const user = await User.create({ name, email, password });
     const token = generateToken(user._id);
     sendTokenCookie(res, token);
+
     res.status(201).json({
       success: true,
-      token,
+      token, // ✅ always return token so frontend can store in localStorage
       user: {
         _id: user._id,
         name: user.name,
         email: user.email,
-        role: user.role
+        role: user.role // ✅ role included so frontend can redirect correctly
       }
     });
   } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
+    res.status(500).json({ success: false, message: 'Server error', error: err.message });
   }
 });
 
+// ✅ LOGIN
 router.post('/login', [
   body('email').isEmail().withMessage('Valid email is required'),
   body('password').notEmpty().withMessage('Password is required')
 ], async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array() });
+    return res.status(400).json({ success: false, errors: errors.array() });
   }
+
   try {
     const { email, password } = req.body;
+
     const user = await User.findOne({ email });
     if (!user || !(await user.comparePassword(password))) {
-      return res.status(401).json({ message: 'Invalid email or password' });
+      return res.status(401).json({ success: false, message: 'Invalid email or password' });
     }
+
     const token = generateToken(user._id);
     sendTokenCookie(res, token);
+
+    // ✅ Return role so frontend knows where to redirect (admin vs user)
     res.json({
       success: true,
       token,
@@ -74,21 +87,36 @@ router.post('/login', [
         _id: user._id,
         name: user.name,
         email: user.email,
-        role: user.role
+        role: user.role // ✅ this is what drives admin vs user redirect
       }
     });
   } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
+    res.status(500).json({ success: false, message: 'Server error', error: err.message });
   }
 });
 
+// ✅ LOGOUT — clears cookie properly in production
 router.post('/logout', (req, res) => {
-  res.cookie('token', '', { maxAge: 0 });
-  res.json({ success: true, message: 'Logged out' });
+  res.cookie('token', '', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    maxAge: 0 // ✅ immediately expires the cookie
+  });
+  res.json({ success: true, message: 'Logged out successfully' });
 });
 
+// ✅ GET CURRENT USER — useful for restoring session on page refresh
 router.get('/me', protect, async (req, res) => {
-  res.json({ success: true, user: req.user });
+  res.json({ 
+    success: true, 
+    user: {
+      _id: req.user._id,
+      name: req.user.name,
+      email: req.user.email,
+      role: req.user.role
+    }
+  });
 });
 
 module.exports = router;
