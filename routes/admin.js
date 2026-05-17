@@ -3,9 +3,9 @@ const router = express.Router();
 const Order = require('../models/Order');
 const Product = require('../models/Product');
 const User = require('../models/User');
-const { protect, isAdmin } = require('../middleware/auth');
+const { protect, adminOnly } = require('../middleware/auth'); // FIX: was isAdmin
 
-router.get('/stats', protect, isAdmin, async (req, res) => {
+router.get('/stats', protect, adminOnly, async (req, res) => { // FIX: was isAdmin
   try {
     const totalOrders = await Order.countDocuments();
     const totalProducts = await Product.countDocuments();
@@ -48,7 +48,7 @@ router.get('/stats', protect, isAdmin, async (req, res) => {
   }
 });
 
-router.get('/orders', protect, isAdmin, async (req, res) => {
+router.get('/orders', protect, adminOnly, async (req, res) => { // FIX: was isAdmin
   try {
     const orders = await Order.find()
       .populate('user', 'name email')
@@ -59,7 +59,7 @@ router.get('/orders', protect, isAdmin, async (req, res) => {
   }
 });
 
-router.put('/orders/:id', protect, isAdmin, async (req, res) => {
+router.put('/orders/:id', protect, adminOnly, async (req, res) => { // FIX: was isAdmin
   try {
     const { orderStatus, paymentStatus } = req.body;
     const order = await Order.findByIdAndUpdate(
@@ -74,7 +74,7 @@ router.put('/orders/:id', protect, isAdmin, async (req, res) => {
   }
 });
 
-router.get('/users', protect, isAdmin, async (req, res) => {
+router.get('/users', protect, adminOnly, async (req, res) => { // FIX: was isAdmin
   try {
     const users = await User.find().select('-password').sort({ createdAt: -1 });
     res.json({ success: true, users });
@@ -83,7 +83,7 @@ router.get('/users', protect, isAdmin, async (req, res) => {
   }
 });
 
-router.delete('/users/:id', protect, isAdmin, async (req, res) => {
+router.delete('/users/:id', protect, adminOnly, async (req, res) => { // FIX: was isAdmin
   try {
     const user = await User.findByIdAndDelete(req.params.id);
     if (!user) return res.status(404).json({ message: 'User not found' });

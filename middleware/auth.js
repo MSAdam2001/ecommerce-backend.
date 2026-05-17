@@ -1,69 +1,51 @@
+// ecommerce-backend/middleware/auth.js  ← place this in your Express backend folder
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
+/* ─────────────────────────────────────────────
+   protect  —  verifies JWT, attaches req.user
+───────────────────────────────────────────── */
 const protect = async (req, res, next) => {
-  let token;
-
-  // ✅ Check Authorization header first (used by frontend localStorage approach)
-  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
-    token = req.headers.authorization.split(' ')[1];
-  }
-  // ✅ Fallback to httpOnly cookie
-  else if (req.cookies && req.cookies.token) {
-    token = req.cookies.token;
-  }
-
-  if (!token) {
-    return res.status(401).json({ 
-      success: false,
-      message: 'Not authorized, no token' 
-    });
-  }
-
   try {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ message: 'Not authorised — no token.' });
+    }
+
+    const token = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // ✅ Check user still exists in DB (handles deleted accounts)
-    const user = await User.findById(decoded.id).select('-password');
-    if (!user) {
-      return res.status(401).json({ 
-        success: false,
-        message: 'User no longer exists' 
-      });
+    // Attach user to request (exclude password)
+    req.user = await User.findById(decoded.id).select('-password');
+
+    if (!req.user) {
+      return res.status(401).json({ message: 'Not authorised — user not found.' });
     }
 
-    req.user = user;
     next();
   } catch (err) {
-    // ✅ Specific error messages for easier debugging
+    console.error('Auth middleware error:', err.message);
+
     if (err.name === 'TokenExpiredError') {
-      return res.status(401).json({ 
-        success: false,
-        message: 'Token expired, please login again' 
-      });
+      return res.status(401).json({ message: 'Token expired — please log in again.' });
     }
     if (err.name === 'JsonWebTokenError') {
-      return res.status(401).json({ 
-        success: false,
-        message: 'Invalid token, please login again' 
-      });
+      return res.status(401).json({ message: 'Invalid token.' });
     }
-    return res.status(401).json({ 
-      success: false,
-      message: 'Not authorized, token failed' 
-    });
+
+    res.status(401).json({ message: 'Not authorised.' });
   }
 };
 
-const isAdmin = (req, res, next) => {
+/* ─────────────────────────────────────────────
+   adminOnly  —  use AFTER protect
+───────────────────────────────────────────── */
+const adminOnly = (req, res, next) => {
   if (req.user && req.user.role === 'admin') {
-    next();
-  } else {
-    res.status(403).json({ 
-      success: false,
-      message: 'Not authorized as admin' 
-    });
+    return next();
   }
+  res.status(403).json({ message: 'Admin access only.' });
 };
 
-module.exports = { protect, isAdmin };
+module.exports = { protect, adminOnly };

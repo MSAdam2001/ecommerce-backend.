@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Category = require('../models/Category');
-const { protect, isAdmin } = require('../middleware/auth');
+const { protect, adminOnly } = require('../middleware/auth');
 const { upload } = require('../config/cloudinary');
 
 router.get('/', async (req, res) => {
@@ -23,7 +23,7 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-router.post('/', protect, isAdmin, upload.single('image'), async (req, res) => {
+router.post('/', protect, adminOnly, upload.single('image'), async (req, res) => {
   try {
     const { name, description } = req.body;
     const image = req.file ? req.file.path : '';
@@ -34,7 +34,7 @@ router.post('/', protect, isAdmin, upload.single('image'), async (req, res) => {
   }
 });
 
-router.put('/:id', protect, isAdmin, upload.single('image'), async (req, res) => {
+router.put('/:id', protect, adminOnly, upload.single('image'), async (req, res) => {
   try {
     const { name, description } = req.body;
     const updateData = { name, description };
@@ -51,7 +51,7 @@ router.put('/:id', protect, isAdmin, upload.single('image'), async (req, res) =>
   }
 });
 
-router.delete('/:id', protect, isAdmin, async (req, res) => {
+router.delete('/:id', protect, adminOnly, async (req, res) => {
   try {
     const category = await Category.findByIdAndDelete(req.params.id);
     if (!category) return res.status(404).json({ message: 'Category not found' });

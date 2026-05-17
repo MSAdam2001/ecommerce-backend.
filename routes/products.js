@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Product = require('../models/Product');
-const { protect, isAdmin } = require('../middleware/auth');
+const { protect, adminOnly } = require('../middleware/auth');
 
 router.get('/', async (req, res) => {
   try {
@@ -15,15 +15,15 @@ router.get('/', async (req, res) => {
       if (maxPrice) query.price.$lte = Number(maxPrice);
     }
     const sortOptions = {
-      newest: { createdAt: -1 },
-      oldest: { createdAt: 1 },
+      newest:    { createdAt: -1 },
+      oldest:    { createdAt:  1 },
       priceHigh: { price: -1 },
-      priceLow: { price: 1 },
-      popular: { sold: -1 }
+      priceLow:  { price:  1 },
+      popular:   { sold: -1 }
     };
     const sortBy = sortOptions[sort] || sortOptions.newest;
-    const skip = (Number(page) - 1) * Number(limit);
-    const total = await Product.countDocuments(query);
+    const skip   = (Number(page) - 1) * Number(limit);
+    const total  = await Product.countDocuments(query);
     const products = await Product.find(query)
       .populate('category', 'name slug')
       .sort(sortBy)
@@ -56,7 +56,8 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-router.post('/', protect, isAdmin, async (req, res) => {
+// FIX: isAdmin → adminOnly
+router.post('/', protect, adminOnly, async (req, res) => {
   try {
     const { name, description, price, comparePrice, category, stock, isFeatured, images } = req.body;
     const productImages = images && images.length > 0 ? images : [];
@@ -71,13 +72,12 @@ router.post('/', protect, isAdmin, async (req, res) => {
   }
 });
 
-router.put('/:id', protect, isAdmin, async (req, res) => {
+// FIX: isAdmin → adminOnly
+router.put('/:id', protect, adminOnly, async (req, res) => {
   try {
     const { name, description, price, comparePrice, category, stock, isFeatured, images } = req.body;
     const updateData = { name, description, price, comparePrice, category, stock, isFeatured };
-    if (images && images.length > 0) {
-      updateData.images = images;
-    }
+    if (images && images.length > 0) updateData.images = images;
     const product = await Product.findByIdAndUpdate(
       req.params.id,
       updateData,
@@ -90,7 +90,8 @@ router.put('/:id', protect, isAdmin, async (req, res) => {
   }
 });
 
-router.delete('/:id', protect, isAdmin, async (req, res) => {
+// FIX: isAdmin → adminOnly
+router.delete('/:id', protect, adminOnly, async (req, res) => {
   try {
     const product = await Product.findByIdAndDelete(req.params.id);
     if (!product) return res.status(404).json({ message: 'Product not found' });

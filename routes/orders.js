@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Order = require('../models/Order');
 const Product = require('../models/Product');
-const { protect, isAdmin } = require('../middleware/auth');
+const { protect, adminOnly } = require('../middleware/auth'); // FIX: was isAdmin
 
 router.post('/', protect, async (req, res) => {
   try {
@@ -68,7 +68,7 @@ router.get('/:id', protect, async (req, res) => {
   }
 });
 
-router.get('/', protect, isAdmin, async (req, res) => {
+router.get('/', protect, adminOnly, async (req, res) => { // FIX: was isAdmin
   try {
     const orders = await Order.find()
       .populate('user', 'name email')
@@ -79,7 +79,7 @@ router.get('/', protect, isAdmin, async (req, res) => {
   }
 });
 
-router.put('/:id/status', protect, isAdmin, async (req, res) => {
+router.put('/:id/status', protect, adminOnly, async (req, res) => { // FIX: was isAdmin
   try {
     const { orderStatus } = req.body;
     const order = await Order.findByIdAndUpdate(
