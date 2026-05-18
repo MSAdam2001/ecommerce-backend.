@@ -13,13 +13,13 @@ const app = express();
 // ─────────────────────────────────────────────
 const allowedOrigins = [
   'http://localhost:3000',
-  'https://your-app.vercel.app',   // ✅ replace with your real Vercel URL
+  'https://ecommerce-frontend-781i.vercel.app',
   process.env.CLIENT_URL,
 ].filter(Boolean);
 
 app.use(cors({
   origin: function (origin, callback) {
-    if (!origin) return callback(null, true); // allow Postman / mobile
+    if (!origin) return callback(null, true);
     if (allowedOrigins.includes(origin)) return callback(null, true);
     return callback(new Error(`CORS blocked for origin: ${origin}`));
   },
@@ -29,7 +29,7 @@ app.use(cors({
 }));
 
 // ─────────────────────────────────────────────
-// ✅ Webhook MUST be registered before express.json()
+// Webhook MUST be before express.json()
 // ─────────────────────────────────────────────
 const paymentRoutes = require('./routes/payment');
 app.use('/api/payment', paymentRoutes);
