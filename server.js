@@ -13,6 +13,7 @@ const app = express();
 // ─────────────────────────────────────────────
 const allowedOrigins = [
   'http://localhost:3000',
+  'https://your-app.vercel.app',   // ✅ replace with your real Vercel URL
   process.env.CLIENT_URL,
 ].filter(Boolean);
 
@@ -23,11 +24,12 @@ app.use(cors({
     return callback(new Error(`CORS blocked for origin: ${origin}`));
   },
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
 // ─────────────────────────────────────────────
 // ✅ Webhook MUST be registered before express.json()
-// because Stripe needs the raw body, not parsed JSON
 // ─────────────────────────────────────────────
 const paymentRoutes = require('./routes/payment');
 app.use('/api/payment', paymentRoutes);
@@ -54,9 +56,7 @@ app.use('/api/orders',     orderRoutes);
 app.use('/api/admin',      adminRoutes);
 
 // ─────────────────────────────────────────────
-// ✅ Health endpoint — keeps Render awake
-// Point UptimeRobot at: https://your-app.onrender.com/health
-// every 10 minutes
+// Health endpoint
 // ─────────────────────────────────────────────
 app.get('/health', (req, res) => {
   res.json({

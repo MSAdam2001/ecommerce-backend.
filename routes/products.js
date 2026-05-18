@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Product = require('../models/Product');
-const { protect, adminOnly } = require('../middleware/auth');
+const { protect, adminOnly } = require('../middleware/auth'); // ✅ fixed
 
 router.get('/', async (req, res) => {
   try {
@@ -22,8 +22,8 @@ router.get('/', async (req, res) => {
       popular:   { sold: -1 }
     };
     const sortBy = sortOptions[sort] || sortOptions.newest;
-    const skip   = (Number(page) - 1) * Number(limit);
-    const total  = await Product.countDocuments(query);
+    const skip = (Number(page) - 1) * Number(limit);
+    const total = await Product.countDocuments(query);
     const products = await Product.find(query)
       .populate('category', 'name slug')
       .sort(sortBy)
@@ -48,7 +48,8 @@ router.get('/featured', async (req, res) => {
 
 router.get('/:id', async (req, res) => {
   try {
-    const product = await Product.findById(req.params.id).populate('category', 'name slug');
+    const product = await Product.findById(req.params.id)
+      .populate('category', 'name slug');
     if (!product) return res.status(404).json({ message: 'Product not found' });
     res.json({ success: true, product });
   } catch (err) {
@@ -56,8 +57,7 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// FIX: isAdmin → adminOnly
-router.post('/', protect, adminOnly, async (req, res) => {
+router.post('/', protect, adminOnly, async (req, res) => { // ✅ fixed
   try {
     const { name, description, price, comparePrice, category, stock, isFeatured, images } = req.body;
     const productImages = images && images.length > 0 ? images : [];
@@ -72,8 +72,7 @@ router.post('/', protect, adminOnly, async (req, res) => {
   }
 });
 
-// FIX: isAdmin → adminOnly
-router.put('/:id', protect, adminOnly, async (req, res) => {
+router.put('/:id', protect, adminOnly, async (req, res) => { // ✅ fixed
   try {
     const { name, description, price, comparePrice, category, stock, isFeatured, images } = req.body;
     const updateData = { name, description, price, comparePrice, category, stock, isFeatured };
@@ -90,8 +89,7 @@ router.put('/:id', protect, adminOnly, async (req, res) => {
   }
 });
 
-// FIX: isAdmin → adminOnly
-router.delete('/:id', protect, adminOnly, async (req, res) => {
+router.delete('/:id', protect, adminOnly, async (req, res) => { // ✅ fixed
   try {
     const product = await Product.findByIdAndDelete(req.params.id);
     if (!product) return res.status(404).json({ message: 'Product not found' });
